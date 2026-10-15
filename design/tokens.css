@@ -1,0 +1,46 @@
+/* design/tokens.css - BabelBeam design tokens including beam gradient */
+:root {
+  --bb-bg: #08111f;
+  --bb-surface: #0d1b2e;
+  --bb-surface-raised: #15263d;
+  --bb-border: #30455f;
+  --bb-text: #f4f8fc;
+  --bb-text-muted: #b7c7da;
+  --bb-cyan: #59d8e5;
+  --bb-cyan-ink: #071b28;
+  --bb-metal: #cdb991;
+  --bb-danger: #ffa3a3;
+  --bb-focus: #8feaf1;
+  --bb-radius-card: 16px;
+  --bb-radius-control: 10px;
+  --bb-space-1: 4px;
+  --bb-space-2: 8px;
+  --bb-space-3: 12px;
+  --bb-space-4: 16px;
+  --bb-space-6: 24px;
+  --bb-space-8: 32px;
+  --bb-space-12: 48px;
+  --bb-touch-target: 44px;
+  --bb-caption-size: 22px;
+
+  /* Logo specific tokens */
+  --bb-navy-900: #071b28;
+  --bb-navy-700: #0d3048;
+  --bb-cyan-600: #59d8e5;
+  --bb-cyan-300: #baf6fb;
+  --bb-white-ice: #f5fbff;
+  --bb-beam-gradient: linear-gradient(90deg, rgba(89,216,229,0.95) 0%, rgba(155,234,244,0.85) 60%, rgba(186,246,251,0.55) 100%);
+}
+[data-theme="light"] {
+  --bb-bg: #f5f8fb;
+  --bb-surface: #ffffff;
+  --bb-surface-raised: #e9f2f7;
+  --bb-border: #b8cbd9;
+  --bb-text: #11253e;
+  --bb-text-muted: #485e74;
+  --bb-cyan: #006b7b;
+  --bb-cyan-ink: #ffffff;
+  --bb-metal: #725b33;
+  --bb-danger: #a31827;
+  --bb-focus: #006b7b;
+}

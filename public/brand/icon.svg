@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- icon.svg: square app icon composition (monogram + beam) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="iconTitle iconDesc">
+  <title id="iconTitle">BabelBeam icon</title>
+  <desc id="iconDesc">Square app icon containing monogram and a hint of the beam.</desc>
+  <defs>
+    <linearGradient id="iconNavy" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0d3048"/>
+      <stop offset="100%" stop-color="#071b28"/>
+    </linearGradient>
+    <linearGradient id="iconBeam" x1="0" x2="1">
+      <stop offset="0%" stop-color="#59d8e5" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#baf6fb" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#ffffff" opacity="0.02"/>
+  <g transform="translate(56,60)">
+    <rect x="0" y="0" width="180" height="360" rx="18" fill="url(#iconNavy)"/>
+    <rect x="120" y="0" width="180" height="360" rx="18" fill="url(#iconNavy)"/>
+    <path d="M300,60 L420,20 L420,140 L300,180 z" fill="url(#iconBeam)"/>
+  </g>
+</svg>

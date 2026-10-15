@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- logo-full.svg: two-B monogram + cyan beam + two-tone wordmark -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">BabelBeam</title>
+  <desc id="logoDesc">BabelBeam wordmark with two-B monogram and cyan beam projecting to the right.</desc>
+  <defs>
+    <linearGradient id="beamGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#59d8e5" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#9beaf4" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#baf6fb" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="navyGrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0d3048"/>
+      <stop offset="100%" stop-color="#071b28"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Monogram group -->
+  <g id="monogram" transform="translate(40,30)">
+    <!-- stylized B shapes (simplified vector placeholder) -->
+    <g id="B-left" transform="translate(0,0)">
+      <path d="M0,0 h120 v240 h-120 z" fill="url(#navyGrad)" opacity="1"/>
+      <circle cx="80" cy="70" r="48" fill="#071b28"/>
+      <circle cx="80" cy="170" r="48" fill="#071b28"/>
+    </g>
+    <g id="B-right" transform="translate(80,0)">
+      <path d="M40,0 h120 v240 h-120 z" fill="url(#navyGrad)"/>
+      <circle cx="160" cy="70" r="48" fill="#071b28"/>
+      <circle cx="160" cy="170" r="48" fill="#071b28"/>
+    </g>
+    <!-- beam -->
+    <g id="beam" transform="translate(260,60)">
+      <path d="M0,30 L420,0 L420,180 L0,150 z" fill="url(#beamGrad)"/>
+    </g>
+  </g>
+
+  <!-- Wordmark: Babel( navy ) + Beam( cyan ) -->
+  <g id="wordmark" transform="translate(520,120)">
+    <text id="word-babel" x="0" y="0" font-family="Inter, Roboto, Arial, sans-serif" font-weight="700" font-size="72" fill="#071b28">Babel</text>
+    <text id="word-beam" x="220" y="0" font-family="Inter, Roboto, Arial, sans-serif" font-weight="700" font-size="72" fill="#59d8e5">Beam</text>
+  </g>
+</svg>

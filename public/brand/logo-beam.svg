@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- logo-beam.svg: beam only, for layered compositions -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200" role="img" aria-labelledby="beamTitle beamDesc">
+  <title id="beamTitle">BabelBeam projection</title>
+  <desc id="beamDesc">Cyan projected beam used in the logo composition.</desc>
+  <defs>
+    <linearGradient id="beamOnlyGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#59d8e5" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#9beaf4" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#baf6fb" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+  <path d="M0,40 L420,0 L420,120 L0,100 z" fill="url(#beamOnlyGrad)"/>
+</svg>

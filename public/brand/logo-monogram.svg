@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- logo-monogram.svg: monogram only, transparent background -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-labelledby="monoTitle monoDesc">
+  <title id="monoTitle">BabelBeam monogram</title>
+  <desc id="monoDesc">Two-B monogram without wordmark, transparent background.</desc>
+  <defs>
+    <linearGradient id="monoNavy" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0d3048"/>
+      <stop offset="100%" stop-color="#071b28"/>
+    </linearGradient>
+  </defs>
+  <g id="monogram" transform="translate(20,20)">
+    <rect x="0" y="0" width="120" height="240" rx="12" fill="url(#monoNavy)"/>
+    <circle cx="90" cy="70" r="36" fill="#071b28"/>
+    <path d="M100,0 h120 v240 h-120 z" fill="url(#monoNavy)"/>
+  </g>
+</svg>

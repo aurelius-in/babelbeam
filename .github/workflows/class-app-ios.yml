@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   compile-ios:
-    runs-on: macos-14
+    runs-on: macos-latest
     defaults:
       run:
         working-directory: apps/native
@@ -51,7 +51,7 @@ jobs:
   testflight:
     needs: compile-ios
     if: ${{ vars.IOS_TESTFLIGHT_ENABLED == 'true' }}
-    runs-on: macos-14
+    runs-on: macos-latest
     defaults:
       run:
         working-directory: apps/native

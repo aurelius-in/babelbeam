@@ -16,6 +16,11 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
   },
+  ios: {
+    contentInset: "automatic",
+    allowsLinkPreview: false,
+    scrollEnabled: true,
+  },
   plugins: {
     KeepAwake: {},
   },

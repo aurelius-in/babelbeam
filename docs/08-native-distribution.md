@@ -7,7 +7,18 @@ Owner request (2026-11-07): provide a downloadable Class App so screen dimming/l
 - Loads https://babelbeam.com inside a native WebView
 - Uses `@capacitor-community/keep-awake` while **Keep screen awake during class** is on
 - Android APK is built by `.github/workflows/class-app-android.yml` and offered on `/install`
-- iPhone signed Class App still needs Apple Developer / TestFlight approval; until then use Home Screen install plus keep-awake
+- iOS Xcode project is under `apps/native/ios` (bundle id `com.babelbeam.classapp`)
+- iOS compile CI: `.github/workflows/class-app-ios.yml` (unsigned build on every native push)
+- iOS TestFlight job: same workflow, enabled only when repo variable `IOS_TESTFLIGHT_ENABLED=true` and Apple signing secrets are present (see `apps/native/README.md`)
+- Until a TestFlight invite URL is published on `/install`, iPhone teachers use Home Screen install plus keep-awake
+
+## Operator gate for Tom's iPhone
+1. Enroll (or reuse) an Apple Developer Program team.
+2. Create App Store Connect app **BabelBeam Class**, bundle id `com.babelbeam.classapp`.
+3. Create Distribution certificate + App Store provisioning profile; encode as base64 secrets listed in `apps/native/README.md`.
+4. Create an App Store Connect API key; store id, issuer, and `.p8` contents as secrets.
+5. Set `IOS_TESTFLIGHT_ENABLED=true`, run **Class App iOS** workflow (or push a native change).
+6. Add Tom (and other pilot phones) as TestFlight testers; paste the public join URL into `InstallPage.tsx` `IOS_TESTFLIGHT_URL`; redeploy web.
 
 ## Honest claims
 The Class App is meant to keep the screen on during class. It is not a Play Store / App Store listing yet, not an offline translator, and not a guarantee of microphone capture after a forced lock or OS background kill. See `docs/10-wake-lock-and-background.md`.

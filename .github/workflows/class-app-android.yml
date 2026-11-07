@@ -32,22 +32,24 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-35 build-tools;35.0.0
 
-      - name: Install native deps and Android platform
+      - name: Install native deps and sync Capacitor
         run: |
           npm install
-          npx cap add android || true
           npx cap sync android
 
-      - name: Build release APK
+      - name: Build debug APK for parish pilot sideload
         working-directory: apps/native/android
-        run: chmod +x gradlew && ./gradlew assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
 
       - name: Stage APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/babelbeam-class.apk || \
-          cp android/app/build/outputs/apk/release/*.apk dist/babelbeam-class.apk
+          APK=$(ls android/app/build/outputs/apk/debug/*.apk | head -n 1)
+          cp "$APK" dist/babelbeam-class.apk
+          ls -la dist/babelbeam-class.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -64,4 +66,3 @@ jobs:
             --title "BabelBeam Class App $TAG" \
             --notes "Android Class App APK. Install from babelbeam.com/install. Keeps the screen awake during class when Keep screen awake is on." \
             --latest
-        working-directory: apps/native

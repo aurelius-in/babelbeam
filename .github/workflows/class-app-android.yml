@@ -1,0 +1,67 @@
+name: Class App Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "apps/native/**"
+      - ".github/workflows/class-app-android.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/native
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/native/package.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install native deps and Android platform
+        run: |
+          npm install
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Build release APK
+        working-directory: apps/native/android
+        run: chmod +x gradlew && ./gradlew assembleRelease
+
+      - name: Stage APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/babelbeam-class.apk || \
+          cp android/app/build/outputs/apk/release/*.apk dist/babelbeam-class.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: babelbeam-class-apk
+          path: apps/native/dist/babelbeam-class.apk
+
+      - name: Publish GitHub Release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="class-app-$(date -u +%Y%m%d%H%M)"
+          gh release create "$TAG" dist/babelbeam-class.apk \
+            --title "BabelBeam Class App $TAG" \
+            --notes "Android Class App APK. Install from babelbeam.com/install. Keeps the screen awake during class when Keep screen awake is on." \
+            --latest
+        working-directory: apps/native

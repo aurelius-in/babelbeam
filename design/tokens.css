@@ -1,5 +1,6 @@
 /* design/tokens.css - BabelBeam design tokens including beam gradient */
 :root {
+  color-scheme: dark;
   --bb-bg: #08111f;
   --bb-surface: #0d1b2e;
   --bb-surface-raised: #15263d;
@@ -32,6 +33,7 @@
   --bb-beam-gradient: linear-gradient(90deg, rgba(89,216,229,0.95) 0%, rgba(155,234,244,0.85) 60%, rgba(186,246,251,0.55) 100%);
 }
 [data-theme="light"] {
+  color-scheme: light;
   --bb-bg: #f5f8fb;
   --bb-surface: #ffffff;
   --bb-surface-raised: #e9f2f7;

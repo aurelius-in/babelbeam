@@ -1,0 +1,28 @@
+[project]
+name = "babelbeam"
+version = "0.1.0"
+description = "Classroom interpretation for parish teaching."
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["services/backend", "services/worker", "packages/runtime"]
+testpaths = ["services/backend/tests", "services/worker/tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["services/backend", "services/worker", "packages/runtime", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "services/backend,services/worker,packages/runtime"
+explicit_package_bases = true
+files = [
+  "services/backend/app",
+  "services/worker/worker",
+  "packages/runtime/babelbeam_runtime",
+]

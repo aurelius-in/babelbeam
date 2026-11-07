@@ -1,0 +1,19 @@
+[project]
+name = "babelbeam-runtime"
+version = "0.1.0"
+description = "Shared BabelBeam settings and state-machine vocabulary."
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["babelbeam_runtime*"]
+
+[tool.setuptools.package-data]
+babelbeam_runtime = ["plan.json"]

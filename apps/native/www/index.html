@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BabelBeam Class</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Georgia, "Palatino Linotype", serif;
+        background: #08111f;
+        color: #e8f4f8;
+        text-align: center;
+        padding: 2rem;
+      }
+      a {
+        color: #59d8e5;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>BabelBeam Class</h1>
+      <p>Opening the live class app…</p>
+      <p><a href="https://babelbeam.com/app">Open babelbeam.com/app</a></p>
+    </main>
+    <script>
+      // Capacitor production builds load https://babelbeam.com via server.url.
+      // This local page is only a fallback if remote loading is unavailable.
+      location.replace("https://babelbeam.com/app");
+    </script>
+  </body>
+</html>

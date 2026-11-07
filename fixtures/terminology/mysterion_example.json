@@ -1,0 +1,40 @@
+{
+  "id": "fixture_mysterion_three_terms",
+  "source_language": "en",
+  "target_language": "es",
+  "source": "The Koine Greek word \"mysterion\" can be translated into two different words in Latin, \"mysterium\" and \"sacramentum.\"",
+  "acceptable_spanish_reference": "La palabra del griego koiné «mysterion» puede traducirse al latín con dos términos diferentes: «mysterium» y «sacramentum».",
+  "reference_is_not_the_only_valid_translation": true,
+  "terms": [
+    {
+      "id": "term_mysterion",
+      "canonical": "mysterion",
+      "language_label": "Koine Greek",
+      "approved_aliases": [],
+      "policy": "preserve_verbatim",
+      "pronunciation_note": "Review with catechist before publishing a voice sample.",
+      "context_note": "Discussed as an original-language theological term.",
+      "approved": false
+    },
+    {
+      "id": "term_mysterium",
+      "canonical": "mysterium",
+      "language_label": "Latin",
+      "approved_aliases": [],
+      "policy": "preserve_verbatim",
+      "pronunciation_note": "Review with catechist before publishing a voice sample.",
+      "context_note": "Latin rendering discussed beside mysterion.",
+      "approved": false
+    },
+    {
+      "id": "term_sacramentum",
+      "canonical": "sacramentum",
+      "language_label": "Latin",
+      "approved_aliases": [],
+      "policy": "preserve_verbatim",
+      "pronunciation_note": "Review with catechist before publishing a voice sample.",
+      "context_note": "Latin rendering discussed beside mysterion.",
+      "approved": false
+    }
+  ]
+}

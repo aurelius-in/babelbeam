@@ -1,0 +1,49 @@
+name: Build and test BabelBeam foundation
+
+on:
+  push:
+    branches: ["phase0/init", "main"]
+  pull_request:
+    branches: ["main", "phase0/init"]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: services/backend:services/worker:packages/runtime
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e packages/runtime -r services/backend/requirements.txt -r services/worker/requirements.txt
+      - name: Install web packages
+        working-directory: apps/web
+        run: npm ci
+      - name: Lint, typecheck, and test
+        run: |
+          python -m ruff check services packages scripts
+          python -m mypy
+          python -m pytest -q
+          python -m alembic -c services/backend/alembic.ini upgrade head --sql > /tmp/babelbeam-migration.sql
+          test -s /tmp/babelbeam-migration.sql
+      - name: Web checks
+        working-directory: apps/web
+        run: |
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+      - name: Browser smoke
+        working-directory: apps/web
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e

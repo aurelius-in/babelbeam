@@ -1,0 +1,20 @@
+{
+  "name": "babelbeam-class-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BabelBeam Class App shell. Keeps the screen awake during live class.",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open:android": "npx cap open android",
+    "build:android": "npx cap sync android && cd android && .\\gradlew.bat assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor-community/keep-awake": "7.0.0",
+    "@capacitor/android": "7.4.3",
+    "@capacitor/core": "7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.4.3",
+    "typescript": "^5.7.3"
+  }
+}

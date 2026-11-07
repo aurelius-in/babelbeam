@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "plan_key": "babelbeam_parish_monthly",
+  "currency": "usd",
+  "amount_cents": 1499,
+  "recurring_interval": "month",
+  "recurring_interval_count": 1,
+  "trial_days": 14,
+  "trial_requires_payment_method": true,
+  "trial_requires_explicit_renewal_consent": true,
+  "trial_start_event": "verified_completed_stripe_subscription_checkout",
+  "billing_scope": "organization",
+  "student_price_cents": 0,
+  "proposed_limits_require_owner_approval": true,
+  "included_class_seconds_per_paid_period": 18000,
+  "included_class_seconds_per_trial": 18000,
+  "max_student_listeners": 10,
+  "max_concurrent_classes": 1,
+  "teacher_seats": 1,
+  "usage_rollover": false,
+  "automatic_overage_billing": false,
+  "inflight_wind_down_seconds": 600,
+  "complimentary_requires_operator_grant": true,
+  "notes": [
+    "The price and 14-day trial are the owner decision of October 15, 2026. They replace the earlier 30-day, $19.99 figures.",
+    "The 300-minute allowance and listener/seat limits are proposed defaults, not confirmed user requirements.",
+    "Calendar-month renewal boundaries come from Stripe, not a recurring 30-day application timer.",
+    "The trial uses the same core product capabilities as the paid plan within disclosed limits."
+  ]
+}

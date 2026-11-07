@@ -34,7 +34,11 @@ Implementation notes for engineers
 - For themeable swaps, either use inline SVG or the dedicated `logo-light.svg`/`logo-full.svg` files.
 - Cache static assets via the app's asset pipeline; prefer immutable filename hashing in production.
 
-Next steps
-- Replace the placeholder vector shapes with the final approved vector sources from the brand art package when available.
-- Add rasterized masks/exports for `maskable-512.png`, `icon-192.png`, and `apple-touch-icon-180.png`.
-- Add small-size PNG checks (24px/48px/96px) to ensure monogram legibility.
+Production rasters
+- `apps/web/public/brand/logo-full.png` is the navy wordmark for light surfaces.
+- `apps/web/public/brand/logo-light.png` is the ice wordmark for dark surfaces. It is a recolor of the approved art, not a CSS invert.
+- `apps/web/public/brand/icon.png` and `apps/web/public/icons/` are cropped from `assets/reference/approved-logo-showcase.png` with the white showcase field removed.
+- Regenerate them with `python scripts/export_brand_assets.py`.
+- The SVG files under `public/brand/` are geometric placeholders. Do not use them in the header.
+
+The parish brochure PDFs in `docs/references/` set the dark layout, small-caps labels, and Speak / Interpret / Follow story. They are not proof of a finished feature.

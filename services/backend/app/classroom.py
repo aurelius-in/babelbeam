@@ -762,6 +762,7 @@ def post_student_audio(
             "student_name": _name_for_token(token),
             "speaker_gender": speaker,
             "listened": False,
+            "handling": "open",
             "created_at": time.time(),
             "appended_ns": time.time_ns(),
         }
@@ -792,7 +793,7 @@ def teacher_cues(token: str, after: str = "") -> dict[str, object]:
             fresh = listed[index + 1 :] if index is not None else listed
         else:
             fresh = listed
-        unread = sum(1 for item in listed if not item.get("listened"))
+        unread = sum(1 for item in listed if _cue_counts_unread(item))
         return {
             "status": room["status"],
             "listener_count": len(room.get("student_tokens", [])),
@@ -818,6 +819,14 @@ def get_question(token: str, cue_id: str) -> dict[str, object]:
 
 
 def mark_question_heard(token: str, cue_id: str) -> dict[str, object]:
+    return set_question_handling(token, cue_id, "heard")
+
+
+def set_question_handling(token: str, cue_id: str, handling: str) -> dict[str, object]:
+    """Teacher marks a question heard, deferred, dismissed, or reopened."""
+    normalized = handling.strip().lower()
+    if normalized not in {"heard", "deferred", "dismissed", "open"}:
+        raise ClassError(400, "rejected")
     with _LOCK:
         _load_unlocked()
         room = _room_by_token_unlocked(token)
@@ -830,10 +839,25 @@ def mark_question_heard(token: str, cue_id: str) -> dict[str, object]:
         cues = _cue_list(room)
         for item in cues:
             if item.get("id") == cue_id:
-                item["listened"] = True
+                if normalized == "heard":
+                    item["listened"] = True
+                    if item.get("handling") not in {"deferred", "dismissed"}:
+                        item["handling"] = "open"
+                elif normalized == "open":
+                    item["handling"] = "open"
+                    item["listened"] = False
+                else:
+                    item["handling"] = normalized
+                    item["listened"] = True
                 _persist_unlocked()
-                unread = sum(1 for cue in cues if not cue.get("listened"))
-                return {"status": "ok", "id": cue_id, "unread_count": unread}
+                unread = sum(1 for cue in cues if _cue_counts_unread(cue))
+                return {
+                    "status": "ok",
+                    "id": cue_id,
+                    "handling": item.get("handling") or "open",
+                    "listened": bool(item.get("listened")),
+                    "unread_count": unread,
+                }
         raise ClassError(404, "not_found")
 
 
@@ -970,6 +994,19 @@ def _gender_for_token(token: str) -> SpeakerGender:
         return DEFAULT_GENDER
 
 
+def _cue_handling(item: dict[str, Any]) -> str:
+    value = str(item.get("handling") or "open").strip().lower()
+    if value in {"open", "deferred", "dismissed"}:
+        return value
+    return "open"
+
+
+def _cue_counts_unread(item: dict[str, Any]) -> bool:
+    if _cue_handling(item) in {"deferred", "dismissed"}:
+        return False
+    return not bool(item.get("listened"))
+
+
 def _cue_public(item: dict[str, Any], *, include_audio: bool = True) -> dict[str, object]:
     audio = str(item.get("audio_base64") or "")
     content_type = str(item.get("audio_content_type") or "")
@@ -983,6 +1020,7 @@ def _cue_public(item: dict[str, Any], *, include_audio: bool = True) -> dict[str
         "student_name": sanitize_display_name(item.get("student_name")) or "Student",
         "speaker_gender": parse_gender(item.get("speaker_gender")) or DEFAULT_GENDER,
         "listened": bool(item.get("listened")),
+        "handling": _cue_handling(item),
         "created_at": item.get("created_at") if isinstance(item.get("created_at"), int | float) else 0,
         "audio_available": bool(audio),
     }

@@ -105,6 +105,63 @@ def test_transcript_survives_end_and_outline_draft(tmp_path, monkeypatch) -> Non
     assert missing.status_code == 404
 
 
+def test_course_memory_and_augmentation_modes(tmp_path, monkeypatch) -> None:
+    client = _client(tmp_path, monkeypatch)
+    first = client.post("/api/v1/classes").json()
+    teacher = {"X-Class-Token": first["teacher_token"]}
+    client.post(
+        "/api/v1/classes/line",
+        headers=teacher,
+        json={"text": "Baptism washes away original sin."},
+    )
+    ended = client.post("/api/v1/classes/end", headers=teacher).json()
+    headers = {"X-Lesson-Token": ended["lesson_token"]}
+    client.patch(
+        f"/api/v1/lessons/{ended['lesson_id']}/course",
+        headers=headers,
+        json={"course_id": "rcia-fall", "course_title": "RCIA Fall"},
+    )
+    for _ in range(40):
+        refreshed = client.get(f"/api/v1/lessons/{ended['lesson_id']}", headers=headers).json()
+        if refreshed["outline"]["status"] in {"draft", "failed"}:
+            break
+        time.sleep(0.1)
+    client.post(
+        f"/api/v1/lessons/{ended['lesson_id']}/outline",
+        headers=headers,
+        json={
+            "english": refreshed["outline"]["english"] or "Baptism overview",
+            "spanish": refreshed["outline"]["spanish"] or "Resumen del bautismo",
+            "ai_additions": [],
+            "approve": True,
+        },
+    )
+
+    second = client.post("/api/v1/classes").json()
+    teacher2 = {"X-Class-Token": second["teacher_token"]}
+    ended2 = client.post("/api/v1/classes/end", headers=teacher2).json()
+    headers2 = {"X-Lesson-Token": ended2["lesson_token"]}
+    client.patch(
+        f"/api/v1/lessons/{ended2['lesson_id']}/course",
+        headers=headers2,
+        json={"course_id": "rcia-fall", "course_title": "RCIA Fall"},
+    )
+
+    viewed = client.get(f"/api/v1/lessons/{ended2['lesson_id']}", headers=headers2).json()
+    assert viewed["course_id"] == "rcia-fall"
+    assert any(item["lesson_id"] == ended["lesson_id"] for item in viewed["course_memory"])
+    assert any(item["lesson_id"] == ended["lesson_id"] for item in viewed["course_history"])
+
+    for mode in ("off", "critical", "light"):
+        regen = client.post(
+            f"/api/v1/lessons/{ended2['lesson_id']}/outline",
+            headers=headers2,
+            json={"regenerate": True, "augmentation": mode},
+        )
+        assert regen.status_code == 200
+        assert regen.json()["outline"]["augmentation"] == mode
+
+
 def test_student_cannot_read_lesson(tmp_path, monkeypatch) -> None:
     client = _client(tmp_path, monkeypatch)
     opened = client.post("/api/v1/classes").json()

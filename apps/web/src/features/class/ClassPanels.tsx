@@ -45,11 +45,14 @@ import {
   type WakeLockController,
   type WakeLockState,
 } from "./wakeLock";
+import { courseIdFromTitle, readCoursePref, storeCoursePref } from "../lessons/coursePref";
 import { rememberEndedLesson } from "../lessons/LessonReview";
 import { silentWavDataUrl } from "./wav";
 
 const FEED_POLL_MS = 1000;
 const MAX_PARALLEL_UPLOADS = 3;
+
+type CueHandling = "open" | "deferred" | "dismissed";
 
 type Cue = {
   id: string;
@@ -60,6 +63,7 @@ type Cue = {
   student_name?: string;
   speaker_gender?: string;
   listened?: boolean;
+  handling?: CueHandling;
   created_at?: number;
 };
 
@@ -134,6 +138,7 @@ export function ClassTeacherPanel() {
   );
   const [questionSound, setQuestionSound] = useState(readQuestionSoundPref);
   const [questionAlert, setQuestionAlert] = useState(false);
+  const [micNeedsResume, setMicNeedsResume] = useState(false);
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const replyRef = useRef<HTMLAudioElement | null>(null);
   const wakeRef = useRef<WakeLockController | null>(null);
@@ -177,6 +182,70 @@ export function ClassTeacherPanel() {
     micRef.current?.stop();
     micRef.current = null;
     setMicOn(false);
+    setMicNeedsResume(false);
+  }
+
+  async function applyStoredCourse(lessonId: string, lessonToken: string) {
+    const pref = readCoursePref();
+    if (!pref.course_title || !lessonId || !lessonToken) {
+      return;
+    }
+    const courseId = pref.course_id || courseIdFromTitle(pref.course_title);
+    try {
+      await fetch(`/api/v1/lessons/${encodeURIComponent(lessonId)}/course`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Lesson-Token": lessonToken,
+        },
+        body: JSON.stringify({ course_id: courseId, course_title: pref.course_title }),
+      });
+      storeCoursePref(courseId, pref.course_title);
+    } catch {
+      // Course continuity is best-effort; class still runs.
+    }
+  }
+
+  async function setQuestionHandling(
+    cueId: string,
+    handling: "deferred" | "dismissed" | "open" | "heard",
+  ) {
+    try {
+      const response = await fetch("/api/v1/classes/questions/handling", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Class-Token": token },
+        body: JSON.stringify({ cue_id: cueId, handling }),
+      });
+      if (!response.ok) {
+        return;
+      }
+      const body = (await response.json()) as {
+        unread_count?: number;
+        handling?: CueHandling;
+        listened?: boolean;
+      };
+      setQuestions((current) =>
+        current.map((cue) =>
+          cue.id === cueId
+            ? {
+                ...cue,
+                handling: body.handling || (handling === "heard" ? cue.handling : handling),
+                listened: body.listened ?? true,
+              }
+            : cue,
+        ),
+      );
+      if (typeof body.unread_count === "number") {
+        setUnreadCount(body.unread_count);
+      }
+      if (selectedQuestion?.id === cueId && (handling === "deferred" || handling === "dismissed")) {
+        setSelectedQuestion(null);
+        setCueText("");
+        replaceReplySrc("");
+      }
+    } catch {
+      // Visual list still updates on next poll.
+    }
   }
 
   async function playSrc(src: string) {
@@ -282,7 +351,12 @@ export function ClassTeacherPanel() {
         setNote(t("interpretFailed"));
         return;
       }
-      const body = (await response.json()) as { join_code?: string; teacher_token?: string };
+      const body = (await response.json()) as {
+        join_code?: string;
+        teacher_token?: string;
+        lesson_id?: string;
+        lesson_token?: string;
+      };
       if (!body.join_code || !body.teacher_token) {
         setNote(t("interpretFailed"));
         return;
@@ -297,6 +371,7 @@ export function ClassTeacherPanel() {
       setInboxOpen(false);
       setSelectedQuestion(null);
       setTypeOpen(false);
+      setMicNeedsResume(false);
 
       setToken(body.teacher_token);
       setCode(body.join_code);
@@ -308,6 +383,9 @@ export function ClassTeacherPanel() {
       replaceReplySrc("");
       setListeners(0);
       setConfirmEnd(false);
+      if (body.lesson_id && body.lesson_token) {
+        void applyStoredCourse(body.lesson_id, body.lesson_token);
+      }
     } catch {
       setNote(t("interpretFailed"));
     } finally {
@@ -365,6 +443,7 @@ export function ClassTeacherPanel() {
       return;
     }
     setNote("");
+    setMicNeedsResume(false);
     try {
       micRef.current = await startTeacherCapture((utterance) => {
         void uploadUtterance(utterance);
@@ -376,6 +455,29 @@ export function ClassTeacherPanel() {
       setMicOn(false);
     }
   }
+
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      if (!micOn) {
+        return;
+      }
+      const capture = micRef.current;
+      if (!capture || !capture.isAlive()) {
+        micRef.current = null;
+        setMicOn(false);
+        setMicNeedsResume(true);
+        setNote(t("micNeedsResume"));
+      }
+      if (keepAwake && wakeState === "inactive") {
+        setNote(t("wakeNeedsAttention"));
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [micOn, keepAwake, wakeState, t]);
 
   async function copyLink() {
     try {
@@ -697,16 +799,56 @@ export function ClassTeacherPanel() {
               {questions.length === 0 ? <p className="fine">{t("questionInboxEmpty")}</p> : null}
               <ul className="question-list">
                 {questions.map((item) => (
-                  <li key={item.id}>
+                  <li key={item.id} className="question-list-item">
                     <button
                       type="button"
-                      className={item.listened ? "button button-line" : "button button-line button-unread"}
+                      className={
+                        item.listened || item.handling === "deferred" || item.handling === "dismissed"
+                          ? "button button-line"
+                          : "button button-line button-unread"
+                      }
                       onClick={() => void openQuestion(item)}
                     >
                       <strong>{item.student_name || t("student")}</strong>
-                      {!item.listened ? <span className="new-tag">{t("questionNew")}</span> : null}
+                      {!item.listened && item.handling !== "deferred" && item.handling !== "dismissed" ? (
+                        <span className="new-tag">{t("questionNew")}</span>
+                      ) : null}
+                      {item.handling === "deferred" ? (
+                        <span className="new-tag">{t("questionDeferred")}</span>
+                      ) : null}
+                      {item.handling === "dismissed" ? (
+                        <span className="new-tag">{t("questionDismissed")}</span>
+                      ) : null}
                       <span className="question-preview">{item.english_text}</span>
                     </button>
+                    <div className="question-item-actions">
+                      {item.handling === "deferred" || item.handling === "dismissed" ? (
+                        <button
+                          type="button"
+                          className="button button-quiet"
+                          onClick={() => void setQuestionHandling(item.id, "open")}
+                        >
+                          {t("questionReopen")}
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="button button-quiet"
+                            onClick={() => void setQuestionHandling(item.id, "deferred")}
+                          >
+                            {t("questionDefer")}
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-quiet"
+                            onClick={() => void setQuestionHandling(item.id, "dismissed")}
+                          >
+                            {t("questionDismiss")}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -737,6 +879,24 @@ export function ClassTeacherPanel() {
             <button type="button" className="button button-primary" onClick={hearReply}>
               {t("tapToHearReply")}
             </button>
+          ) : null}
+          {selectedQuestion ? (
+            <div className="lesson-actions">
+              <button
+                type="button"
+                className="button"
+                onClick={() => void setQuestionHandling(selectedQuestion.id, "deferred")}
+              >
+                {t("questionDefer")}
+              </button>
+              <button
+                type="button"
+                className="button"
+                onClick={() => void setQuestionHandling(selectedQuestion.id, "dismissed")}
+              >
+                {t("questionDismiss")}
+              </button>
+            </div>
           ) : null}
         </div>
       ) : (
@@ -775,6 +935,11 @@ export function ClassTeacherPanel() {
           {micOn ? t("micStop") : t("micStart")}
         </button>
         {micOn ? <p className="teacher-mic-note" role="status">{t("micOnTeacher")}</p> : null}
+        {micNeedsResume ? (
+          <p className="teacher-mic-note lesson-gap" role="status">
+            {t("micNeedsResume")}
+          </p>
+        ) : null}
 
         <label className="teacher-toggle">
           <input

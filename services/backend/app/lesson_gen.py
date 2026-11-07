@@ -180,6 +180,7 @@ def _build_outline(lesson: dict[str, Any], settings: Settings) -> dict[str, Any]
     augmentation = _augment(str((lesson.get("outline") or {}).get("augmentation") or "critical"))
     prior = lessons.prior_approved_summaries(
         str(lesson.get("course_id") or ""),
+        teacher_token=str(lesson.get("teacher_token") or ""),
         exclude_lesson_id=str(lesson.get("id") or ""),
     )
     if settings.provider_mode.strip().lower() != "live" or not settings.openai_api_key.strip():

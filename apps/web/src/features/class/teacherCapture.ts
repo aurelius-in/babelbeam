@@ -13,6 +13,8 @@ export type CapturedUtterance = {
 export type TeacherCapture = {
   stop: () => void;
   setHold: (held: boolean) => void;
+  /** False when the OS ended tracks or suspended audio after lock/background. */
+  isAlive: () => boolean;
 };
 
 const WORKLET_URL = "/worklets/pcm-tap.js";
@@ -114,6 +116,19 @@ export async function startTeacherCapture(
     },
     setHold(held) {
       segmenter.setHold(held);
+    },
+    isAlive() {
+      if (stopped) {
+        return false;
+      }
+      if (context.state === "closed") {
+        return false;
+      }
+      const tracks = stream.getAudioTracks();
+      if (tracks.length === 0) {
+        return false;
+      }
+      return tracks.every((track) => track.readyState === "live");
     },
   };
 }

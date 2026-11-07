@@ -1,7 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useI18n } from "../../app/i18n";
+import { courseIdFromTitle, storeCoursePref } from "./coursePref";
 import { lessonSmsMessage, smsComposeUrl } from "./smsShare";
+import {
+  downloadTextFile,
+  transcriptFilename,
+  transcriptJson,
+  transcriptPlainText,
+} from "./transcriptExport";
+
+type AugmentMode = "off" | "critical" | "light";
+
+type CourseMemoryItem = {
+  lesson_id?: string;
+  title?: string;
+  english?: string;
+  ended_at?: string;
+};
+
+type CourseHistoryItem = {
+  lesson_id?: string;
+  course_title?: string;
+  outline_status?: string;
+  segment_count?: number;
+  ended_at?: number | null;
+};
 
 type Segment = {
   id: string;
@@ -31,11 +55,14 @@ type Lesson = {
   gaps?: { reason?: string }[];
   outline?: {
     status?: string;
+    augmentation?: AugmentMode;
     english?: string;
     spanish?: string;
     ai_additions?: AiAddition[];
     error?: string;
   };
+  course_memory?: CourseMemoryItem[];
+  course_history?: CourseHistoryItem[];
   quiz?: {
     status?: string;
     english?: string;
@@ -90,6 +117,7 @@ export function LessonReviewPage() {
   const [aiAdditions, setAiAdditions] = useState<AiAddition[]>([]);
   const [busy, setBusy] = useState(false);
   const [smsPhone, setSmsPhone] = useState("");
+  const [augmentation, setAugmentation] = useState<AugmentMode>("critical");
 
   useEffect(() => {
     if (tokenFromQuery && lessonId) {
@@ -117,6 +145,10 @@ export function LessonReviewPage() {
     setOutlineEn(body.outline?.english || "");
     setOutlineEs(body.outline?.spanish || "");
     setAiAdditions(body.outline?.ai_additions || []);
+    const mode = body.outline?.augmentation;
+    if (mode === "off" || mode === "critical" || mode === "light") {
+      setAugmentation(mode);
+    }
     setNote("");
   }
 
@@ -139,13 +171,16 @@ export function LessonReviewPage() {
     }
     setBusy(true);
     try {
+      const courseId = courseIdFromTitle(courseTitle);
       const response = await fetch(`/api/v1/lessons/${lesson.id}/course`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "X-Lesson-Token": token },
-        body: JSON.stringify({ course_id: courseTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 64), course_title: courseTitle }),
+        body: JSON.stringify({ course_id: courseId, course_title: courseTitle }),
       });
       if (response.ok) {
-        setLesson((await response.json()) as Lesson);
+        const body = (await response.json()) as Lesson;
+        setLesson(body);
+        storeCoursePref(courseId, courseTitle);
         setNote(t("lessonSaved"));
       }
     } finally {
@@ -188,7 +223,7 @@ export function LessonReviewPage() {
       const response = await fetch(`/api/v1/lessons/${lesson.id}/outline`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Lesson-Token": token },
-        body: JSON.stringify({ regenerate: true, augmentation: "critical" }),
+        body: JSON.stringify({ regenerate: true, augmentation }),
       });
       if (response.ok) {
         setLesson((await response.json()) as Lesson);
@@ -333,6 +368,22 @@ export function LessonReviewPage() {
     }
   }
 
+  function downloadTranscript(kind: "txt" | "json") {
+    if (!lesson) {
+      return;
+    }
+    if (kind === "txt") {
+      downloadTextFile(transcriptFilename(lesson, "txt"), transcriptPlainText(lesson), "text/plain");
+    } else {
+      downloadTextFile(
+        transcriptFilename(lesson, "json"),
+        transcriptJson(lesson),
+        "application/json",
+      );
+    }
+    setNote(t("lessonDownloaded"));
+  }
+
   if (!lessonId || !token) {
     return (
       <main className="sheet class-sheet">
@@ -367,6 +418,34 @@ export function LessonReviewPage() {
       <button type="button" className="button" disabled={busy} onClick={() => void saveCourse()}>
         {t("lessonSaveCourse")}
       </button>
+      {(lesson?.course_memory?.length || 0) > 0 ? (
+        <section className="lesson-course-memory" aria-label={t("lessonCourseMemory")}>
+          <p className="caption-label">{t("lessonCourseMemory")}</p>
+          <ul className="lesson-memory-list">
+            {(lesson?.course_memory || []).map((item) => (
+              <li key={item.lesson_id || item.english}>
+                <strong>{item.title || t("lessonOutline")}</strong>
+                <p className="fine">{(item.english || "").slice(0, 280)}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : courseTitle.trim() ? (
+        <p className="fine">{t("lessonCourseMemoryEmpty")}</p>
+      ) : null}
+      {(lesson?.course_history?.length || 0) > 0 ? (
+        <section className="lesson-course-history" aria-label={t("lessonCourseHistory")}>
+          <p className="caption-label">{t("lessonCourseHistory")}</p>
+          <ul className="lesson-memory-list">
+            {(lesson?.course_history || []).map((item) => (
+              <li key={item.lesson_id}>
+                {item.course_title || item.lesson_id} · {item.outline_status || "idle"} ·{" "}
+                {item.segment_count || 0}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <nav className="lesson-tabs" aria-label={t("lessonTitle")}>
         {(
@@ -394,6 +473,14 @@ export function LessonReviewPage() {
       {tab === "transcript" ? (
         <section className="lesson-panel">
           <p className="fine">{t("lessonTranscriptHint")}</p>
+          <div className="lesson-actions">
+            <button type="button" className="button" onClick={() => downloadTranscript("txt")}>
+              {t("lessonDownloadTxt")}
+            </button>
+            <button type="button" className="button" onClick={() => downloadTranscript("json")}>
+              {t("lessonDownloadJson")}
+            </button>
+          </div>
           <ul className="lesson-segments">
             {(lesson?.segments || []).map((item) => (
               <li key={item.id} className="lesson-segment">
@@ -430,6 +517,27 @@ export function LessonReviewPage() {
             {t("lessonOutlineStatus")}: {lesson?.outline?.status || "idle"}
           </p>
           {lesson?.outline?.error ? <p role="status">{lesson.outline.error}</p> : null}
+          <fieldset className="lesson-augment">
+            <legend>{t("lessonAugmentLabel")}</legend>
+            <p className="fine">{t("lessonAugmentHint")}</p>
+            {(
+              [
+                ["off", t("lessonAugmentOff")],
+                ["critical", t("lessonAugmentCritical")],
+                ["light", t("lessonAugmentLight")],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value} className="teacher-toggle">
+                <input
+                  type="radio"
+                  name="lesson-augment"
+                  checked={augmentation === value}
+                  onChange={() => setAugmentation(value)}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </fieldset>
           <div className="lesson-actions">
             <button type="button" className="button" disabled={busy} onClick={() => void regenerateOutline()}>
               {t("lessonRegenerate")}
@@ -546,6 +654,15 @@ export function LessonReviewPage() {
               <Link to={lesson.publication.share_path}>{lesson.publication.share_path}</Link>
             </p>
           ) : null}
+          {lesson?.publication?.status === "published" && lesson.publication.share_path ? (
+            <button
+              type="button"
+              className="button"
+              onClick={() => window.open(lesson.publication?.share_path, "_blank", "noopener")}
+            >
+              {t("lessonPrint")}
+            </button>
+          ) : null}
         </section>
       ) : null}
     </main>
@@ -618,6 +735,11 @@ export function ShareLessonPage() {
           </button>
         </div>
       </header>
+      <p className="how-actions no-print">
+        <button type="button" className="button button-primary" onClick={() => window.print()}>
+          {t("lessonPrint")}
+        </button>
+      </p>
       <article className="share-article">
         <pre className="share-body">{outline}</pre>
         {(payload.outline?.ai_additions || []).some((item) => item.accepted) ? (

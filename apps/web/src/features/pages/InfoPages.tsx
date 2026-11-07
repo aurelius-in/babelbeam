@@ -34,6 +34,34 @@ export function HowToPage() {
           <p>{t("stepFollowLesson")}</p>
         </li>
       </ol>
+
+      <section className="teach-guide" aria-labelledby="teach-guide-heading">
+        <h2 id="teach-guide-heading">{t("teachGuideTitle")}</h2>
+        <p className="lede">{t("teachGuideBody")}</p>
+        <ol className="steps how-steps">
+          <li>
+            <span>01</span>
+            <h3>{t("teachGuide1")}</h3>
+            <p>{t("teachGuide1Body")}</p>
+          </li>
+          <li>
+            <span>02</span>
+            <h3>{t("teachGuide2")}</h3>
+            <p>{t("teachGuide2Body")}</p>
+          </li>
+          <li>
+            <span>03</span>
+            <h3>{t("teachGuide3")}</h3>
+            <p>{t("teachGuide3Body")}</p>
+          </li>
+          <li>
+            <span>04</span>
+            <h3>{t("teachGuide4")}</h3>
+            <p>{t("teachGuide4Body")}</p>
+          </li>
+        </ol>
+      </section>
+
       <p className="promise">{t("promise")}</p>
       <p className="legal-disclaimer">{t("constraints")}</p>
       <p className="how-actions">

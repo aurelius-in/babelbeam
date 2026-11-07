@@ -19,7 +19,8 @@ import httpx
 
 from app.errors import ClassError
 
-_LOCK = threading.Lock()
+# RLock: _public_lesson may build course memory while a caller already holds the lock.
+_LOCK = threading.RLock()
 _LESSONS: dict[str, dict[str, Any]] = {}
 _BLOB_PREFIX = "classroom/lessons/"
 _MAX_SEGMENTS = 500
@@ -430,7 +431,20 @@ def get_shared(share_token: str) -> dict[str, Any]:
         raise ClassError(404, "not_found")
 
 
-def prior_approved_summaries(course_id: str, *, exclude_lesson_id: str = "", limit: int = 5) -> list[dict[str, str]]:
+def prior_approved_summaries(
+    course_id: str,
+    *,
+    teacher_token: str = "",
+    exclude_lesson_id: str = "",
+    limit: int = 5,
+) -> list[dict[str, str]]:
+    """Return approved outlines for the same course id.
+
+    Pilot classes mint a new teacher token each session, so continuity is keyed by
+    course_id (set by the teacher), not teacher_token. teacher_token is accepted for
+    call-site compatibility and reserved for a stricter tenant filter later.
+    """
+    _ = teacher_token
     if not course_id.strip():
         return []
     with _LOCK:
@@ -440,6 +454,7 @@ def prior_approved_summaries(course_id: str, *, exclude_lesson_id: str = "", lim
             for lesson in _LESSONS.values()
             if lesson.get("course_id") == course_id
             and lesson.get("id") != exclude_lesson_id
+            and lesson.get("status") != "deleted"
             and (lesson.get("outline") or {}).get("status") == "approved"
             and (lesson.get("outline") or {}).get("english")
         ]
@@ -451,7 +466,47 @@ def prior_approved_summaries(course_id: str, *, exclude_lesson_id: str = "", lim
                 {
                     "lesson_id": lesson["id"],
                     "title": lesson.get("course_title") or "",
+                    "ended_at": str(lesson.get("ended_at") or lesson.get("created_at") or ""),
                     "english": str(outline.get("english") or "")[:4000],
+                }
+            )
+        return out
+
+
+def course_history(
+    course_id: str,
+    *,
+    teacher_token: str = "",
+    exclude_lesson_id: str = "",
+    limit: int = 12,
+) -> list[dict[str, object]]:
+    """Ordered lessons in the same course (continuity UI)."""
+    _ = teacher_token
+    if not course_id.strip():
+        return []
+    with _LOCK:
+        _load_all_unlocked()
+        matches = [
+            lesson
+            for lesson in _LESSONS.values()
+            if lesson.get("course_id") == course_id
+            and lesson.get("id") != exclude_lesson_id
+            and lesson.get("status") != "deleted"
+        ]
+        matches.sort(key=lambda item: float(item.get("ended_at") or item.get("created_at") or 0))
+        out: list[dict[str, object]] = []
+        for lesson in matches[-limit:]:
+            outline = lesson.get("outline") or {}
+            out.append(
+                {
+                    "lesson_id": lesson["id"],
+                    "course_title": lesson.get("course_title") or "",
+                    "status": lesson.get("status"),
+                    "created_at": lesson.get("created_at"),
+                    "ended_at": lesson.get("ended_at"),
+                    "segment_count": len(lesson.get("segments") or []),
+                    "outline_status": outline.get("status"),
+                    "has_access_token": bool(lesson.get("access_token")),
                 }
             )
         return out
@@ -497,6 +552,21 @@ def _public_lesson(lesson: dict[str, Any], *, teacher: bool) -> dict[str, Any]:
         },
         "retention_days": lesson.get("retention_days") or _RETENTION_DAYS,
     }
+    if teacher:
+        teacher_token = str(lesson.get("teacher_token") or "")
+        course_id = str(lesson.get("course_id") or "")
+        payload["course_memory"] = prior_approved_summaries(
+            course_id,
+            teacher_token=teacher_token,
+            exclude_lesson_id=str(lesson.get("id") or ""),
+            limit=5,
+        )
+        payload["course_history"] = course_history(
+            course_id,
+            teacher_token=teacher_token,
+            exclude_lesson_id=str(lesson.get("id") or ""),
+            limit=12,
+        )
     if teacher:
         payload["lesson_token"] = lesson.get("access_token")
     return payload

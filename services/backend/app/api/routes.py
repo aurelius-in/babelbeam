@@ -19,6 +19,7 @@ from app.classroom import (
     join_class,
     get_question,
     mark_question_heard,
+    set_question_handling,
     parse_line_order,
     post_line,
     post_student_audio,
@@ -52,6 +53,11 @@ class JoinIn(BaseModel):
 
 class HeardIn(BaseModel):
     cue_id: str = Field(min_length=4, max_length=64)
+
+
+class QuestionHandlingIn(BaseModel):
+    cue_id: str = Field(min_length=4, max_length=64)
+    handling: Literal["heard", "deferred", "dismissed", "open"] = "heard"
 
 
 class LineIn(BaseModel):
@@ -317,6 +323,17 @@ def class_question_heard(body: HeardIn, request: Request) -> JSONResponse:
         return JSONResponse(
             status_code=200,
             content=mark_question_heard(_class_token(request), body.cue_id),
+        )
+    except ClassError as exc:
+        return _class_error(exc)
+
+
+@router.post("/api/v1/classes/questions/handling")
+def class_question_handling(body: QuestionHandlingIn, request: Request) -> JSONResponse:
+    try:
+        return JSONResponse(
+            status_code=200,
+            content=set_question_handling(_class_token(request), body.cue_id, body.handling),
         )
     except ClassError as exc:
         return _class_error(exc)

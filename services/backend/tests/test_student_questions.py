@@ -163,6 +163,20 @@ def test_two_students_can_leave_named_questions(tmp_path, monkeypatch) -> None:
         headers={"X-Class-Token": ana["student_token"]},
     )
     assert "Gracias" not in feed.text
+    deferred = client.post(
+        "/api/v1/classes/questions/handling",
+        headers=teacher,
+        json={"cue_id": body["cues"][1]["id"], "handling": "deferred"},
+    )
+    assert deferred.status_code == 200
+    assert deferred.json()["handling"] == "deferred"
+    assert deferred.json()["unread_count"] == 0
+    after_defer = client.get("/api/v1/classes/cues", headers=teacher).json()
+    assert after_defer["unread_count"] == 0
+    deferred_cue = next(item for item in after_defer["cues"] if item["id"] == body["cues"][1]["id"])
+    assert deferred_cue["handling"] == "deferred"
+    assert deferred_cue["listened"] is True
+
     ended = client.post("/api/v1/classes/end", headers=teacher)
     assert ended.status_code == 200
     gone = client.get("/api/v1/classes/cues", headers=teacher)
